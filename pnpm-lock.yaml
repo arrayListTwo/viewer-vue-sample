@@ -40,6 +40,9 @@ devDependencies:
   fs-extra:
     specifier: ^11.2.0
     version: 11.2.0
+  regenerator-runtime:
+    specifier: ^0.14.1
+    version: 0.14.1
   sass:
     specifier: ^1.32.7
     version: 1.77.6
