@@ -8,7 +8,18 @@
   </div>
 </template>
 
-<style lang="scss">
+<script>
+import HelloWorld from './components/HelloWorld.vue'
+
+export default {
+  name: 'app',
+  components: {
+    HelloWorld
+  }
+}
+</script>
+
+<style>
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
