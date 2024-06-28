@@ -22,6 +22,16 @@ export default {
       const {Core, UI} = instance
       console.log(Core)
       console.log(UI)
+      const {
+        documentViewer,
+        annotationManager,
+        Annotations
+      } = Core;
+
+      UI.disableElements(['searchButton']);
+      UI.setTheme('dark');
+      documentViewer.setMargin(20);
+
     })
   },
 }
