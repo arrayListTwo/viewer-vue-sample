@@ -14,10 +14,11 @@ export default {
     }
   },
   mounted () {
+    // 支持文件/文件流/blob等方式
     PdfWebView({
       path: `${this.path}pdf-viewer-lib`,
-      initialDoc: `${process.env.BASE_URL}files/goView开源项目.pdf`,
-      // initialDoc: `${process.env.BASE_URL}files/测试pdf文件.pdf`,
+      // initialDoc: `${process.env.BASE_URL}files/goView开源项目.pdf`,
+      initialDoc: `${process.env.BASE_URL}files/测试pdf文件.pdf`,
       licenseKey: 'aOWN16k2sFXSOXKDzvBH'
     }, this.$refs.pdfViewer).then(instance => {
       const {Core, UI} = instance
