@@ -7,9 +7,13 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "@vue-office/docx": "^1.6.2",
+    "@vue-office/excel": "^1.7.8",
+    "@vue-office/pdf": "^2.0.2",
     "core-js": "^3.8.3",
     "element-ui": "^2.4.5",
     "vue": "^2.6.14",
+    "vue-demi": "^0.14.8",
     "vue-router": "^3.5.1",
     "vuex": "^3.6.2"
   },
