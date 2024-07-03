@@ -8,11 +8,14 @@ export default defineComponent({
 
 <template>
   <div class="vue-office-example">
-    <h2 style="background-color: darksalmon; color: #fff">src为 [文件地址 | 流(ArrayBuffer)]</h2>
+    <div style="background-color: darksalmon; color: #fff">
+      <h2>src为 [文件地址 | 流(ArrayBuffer)]</h2>
+      <h2>不支持IE</h2>
+    </div>
     <nav>
       <router-link to="/vue-office/docx">docx</router-link> |
-      <router-link to="/vue-office/xlsx">xlsx</router-link> |
-      <router-link to="/vue-office/pdf">vue-office库演示</router-link>
+      <router-link to="/vue-office/excel">excel</router-link> |
+      <router-link to="/vue-office/pdf">pdf</router-link>
     </nav>
     <router-view></router-view>
   </div>

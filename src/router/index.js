@@ -29,9 +29,14 @@ const routes = [
         component: () => import('../views/vue-office-example/docx.vue')
       },
       {
-        path: 'xlsx',
-        name: 'vueOfficeXlsx',
+        path: 'excel',
+        name: 'vueOfficeExcel',
         component: () => import('../views/vue-office-example/excel.vue')
+      },
+      {
+        path: 'pdf',
+        name: 'vueOfficePdf',
+        component: () => import('../views/vue-office-example/pdf.vue')
       }
     ]
   }
