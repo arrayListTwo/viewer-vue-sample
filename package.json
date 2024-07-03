@@ -15,7 +15,8 @@
     "vue": "^2.6.14",
     "vue-demi": "^0.14.8",
     "vue-router": "^3.5.1",
-    "vuex": "^3.6.2"
+    "vuex": "^3.6.2",
+    "watermark-dom": "^2.3.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~5.0.0",
