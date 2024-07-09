@@ -1,11 +1,8 @@
 <template>
   <div class="home">
-    <div>
-      <router-link to="/about">跳转到about页查看详情</router-link>
+    <div style="text-align: center">
+      <router-link to="/usdoc">跳转到 【usdoc服务演示】 页查看详情</router-link>
     </div>
-    <img alt="Vue logo" src="../assets/logo.png">
-    <el-button>el-button</el-button>
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
   </div>
 </template>
 

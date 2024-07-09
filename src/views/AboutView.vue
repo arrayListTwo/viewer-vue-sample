@@ -31,11 +31,11 @@
           </el-option>
         </el-select>
       </el-form-item>
-      <el-form-item label="预览页面-工具栏是否显示下载按钮">
+      <el-form-item label="预览页面-工具栏是否显示下载按钮" v-if="!form.previewMode || form.previewMode === 0">
         <el-switch v-model="form.showDownLoadToolbar" active-text="显示" inactive-text="不显示" :active-value="0"
                    :inactive-value="1"></el-switch>
       </el-form-item>
-      <el-form-item label="预览页面-工具栏是否显示打印按钮">
+      <el-form-item label="预览页面-工具栏是否显示打印按钮" v-if="!form.previewMode || form.previewMode === 0">
         <el-switch v-model="form.showPrintToolbar" active-text="显示" inactive-text="不显示" :active-value="0"
                    :inactive-value="1"></el-switch>
       </el-form-item>
@@ -260,13 +260,11 @@ export default {
       if (iframe.attachEvent) {
         iframe.attachEvent('onload', function () {
           // iframe加载完毕以后执行操作
-          console.log('iframe已加载完毕')
           _this.iframeLoading = false
         })
       } else {
         iframe.onload = function () {
           // iframe加载完毕以后执行操作
-          console.log('iframe已加载完毕')
           _this.iframeLoading = false
         }
       }
