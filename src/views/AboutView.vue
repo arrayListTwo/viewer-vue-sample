@@ -52,12 +52,12 @@
     <div style=" display: flex">
       <el-input disabled v-model="previewUrl">
         <template #append>
-          <el-button>复制预览地址</el-button>
+          <el-button @click="copyText(previewUrl)">复制预览地址</el-button>
         </template>
       </el-input>
       <el-input disabled style="margin-left: 15px;" v-model="downLoadUrl">
         <template #append>
-          <el-button>复制下载地址</el-button>
+          <el-button @click="copyText(downLoadUrl)">复制下载地址</el-button>
         </template>
       </el-input>
     </div>
@@ -238,6 +238,15 @@ export default {
       const serviceUrl = 'https://vw.usdoc.cn'
       this.downLoadUrl = `${serviceUrl}?format=down&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
 
+    },
+
+    // 复制地址
+    copyText (text) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.$message.success('复制成功')
+      }).catch(e => {
+        this.$message.error('复制失败')
+      })
     },
 
     // 判断iframe是否加载完成
