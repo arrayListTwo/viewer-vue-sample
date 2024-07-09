@@ -1,6 +1,6 @@
 <template>
   <div class="about">
-    <h1>This is an about page</h1>
+    <h1 style="text-align: center">usdoc服务功能demo页面</h1>
     <el-form :inline="true" :model="form">
       <el-form-item label="请选择文件">
         <el-select v-model="form.fileSrc" placeholder="请选择">
@@ -44,8 +44,8 @@
                   style="width: 260px"></el-input>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="preview">预览</el-button>
-        <el-button type="primary" @click="download">下载</el-button>
+        <el-button type="primary" plain @click="preview">点击进行预览</el-button>
+        <el-button type="primary" plain @click="download">点击进行下载</el-button>
       </el-form-item>
     </el-form>
 
@@ -64,11 +64,12 @@
 
     <h2 style="text-align: center">预览效果: </h2>
 
-    <div v-loading="iframeLoading">
+    <div v-loading="iframeLoading" class="iframe-wrapper">
       <iframe
           id="iframe"
-          class="iframe-wrapper"
           :src="previewUrl"
+          height="100%"
+          width="100%"
           frameborder="0"></iframe>
     </div>
   </div>
@@ -85,96 +86,96 @@ export default {
         options: [ {
           label: 'PDF 文件',
           options: [ {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/pdf文件测试-文件1.pdf', // url地址
-            label: 'PDF文件1', // 文件名称
+            value: 'http://api.usdoc.cn/vw/20240709/pdf文件测试-文件1.pdf', // url地址
+            label: 'PDF .pdf 文件1', // 文件名称
             size: '4.78M' // 文件大小
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/pdf文件测试-文件2.pdf', // url地址
-            label: 'PDF文件2', // 文件名称
+            value: 'http://api.usdoc.cn/vw/20240709/pdf文件测试-文件2.pdf', // url地址
+            label: 'PDF .pdf 文件2', // 文件名称
             size: '9.7M' // 文件大小
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/pdf文件测试-文件3.pdf',
-            label: 'PDF文件3',
+            value: 'http://api.usdoc.cn/vw/20240709/pdf文件测试-文件3.pdf',
+            label: 'PDF .pdf 文件3',
             size: '63M'
           } ]
         }, {
           label: 'WORD 文件',
           options: [ {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/doc文件测试-文件1.doc',
+            value: 'http://api.usdoc.cn/vw/20240709/doc文件测试-文件1.doc',
             label: 'WORD .doc 文件1',
             size: '0.3M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/doc文件测试-文件2.doc',
+            value: 'http://api.usdoc.cn/vw/20240709/doc文件测试-文件2.doc',
             label: 'WORD .doc 文件2',
             size: '5.4M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/doc文件测试-文件三.doc',
+            value: 'http://api.usdoc.cn/vw/20240709/doc文件测试-文件三.doc',
             label: 'WORD .doc 文件3',
             size: '19.1M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/docx文件测试-文件1.docx',
+            value: 'http://api.usdoc.cn/vw/20240709/docx文件测试-文件1.docx',
             label: 'WORD .docx 文件1',
             size: '0.3M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/docx文件测试-文件2.docx',
+            value: 'http://api.usdoc.cn/vw/20240709/docx文件测试-文件2.docx',
             label: 'WORD .docx 文件2',
             size: '5.4M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/docx文件测试-文件3.docx',
+            value: 'http://api.usdoc.cn/vw/20240709/docx文件测试-文件3.docx',
             label: 'WORD .docx 文件3',
             size: '19.1M'
           } ]
         }, {
           label: 'EXCEL 文件',
           options: [ {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/xls文件测试-文件1.xls',
+            value: 'http://api.usdoc.cn/vw/20240709/xls文件测试-文件1.xls',
             label: 'EXCEL .xls 文件1',
             size: '4.2M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/xls文件测试-文件2.xls',
+            value: 'http://api.usdoc.cn/vw/20240709/xls文件测试-文件2.xls',
             label: 'EXCEL .xls 文件2',
             size: '5.6M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/xls文件测试-文件3.xls',
+            value: 'http://api.usdoc.cn/vw/20240709/xls文件测试-文件3.xls',
             label: 'EXCEL .xls 文件3',
             size: '15.2M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/xlsx文件测试-文件1.xlsx',
+            value: 'http://api.usdoc.cn/vw/20240709/xlsx文件测试-文件1.xlsx',
             label: 'EXCEL .xlsx 文件1',
             size: '0.1M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/xlsx文件测试-文件2.xlsx',
+            value: 'http://api.usdoc.cn/vw/20240709/xlsx文件测试-文件2.xlsx',
             label: 'EXCEL .xlsx 文件2',
             size: '5.04M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/xlsx文件测试-文件3.xlsx',
+            value: 'http://api.usdoc.cn/vw/20240709/xlsx文件测试-文件3.xlsx',
             label: 'EXCEL .xlsx 文件3',
             size: '17.3M'
           } ]
         }, {
           label: 'PPT 文件',
           options: [ {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/ppt文件测试-文件1.ppt',
+            value: 'http://api.usdoc.cn/vw/20240709/ppt文件测试-文件1.ppt',
             label: 'PPT .ppt 文件1',
             size: '0.9M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/ppt文件测试-文件2.ppt',
+            value: 'http://api.usdoc.cn/vw/20240709/ppt文件测试-文件2.ppt',
             label: 'PPT .ppt 文件2',
             size: '2.62M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/ppt文件测试-文件3.ppt',
+            value: 'http://api.usdoc.cn/vw/20240709/ppt文件测试-文件3.ppt',
             label: 'PPT .ppt 文件3',
             size: '13.3M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/pptx文件测试-文件1.pptx',
+            value: 'http://api.usdoc.cn/vw/20240709/pptx文件测试-文件1.pptx',
             label: 'PPT .pptx 文件1',
             size: '0.5M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/pptx文件测试-文件2.pptx',
+            value: 'http://api.usdoc.cn/vw/20240709/pptx文件测试-文件2.pptx',
             label: 'PPT .pptx 文件2',
             size: '1.07M'
           }, {
-            value: 'https://vw.usdoc.cn/?src=http://api.usdoc.cn/vw/20240709/pptx文件测试-文件3.pptx',
+            value: 'http://api.usdoc.cn/vw/20240709/pptx文件测试-文件3.pptx',
             label: 'PPT .pptx 文件3',
             size: '12.2M'
           } ]
@@ -237,7 +238,7 @@ export default {
       // sass服务地址；私有化部署后，需更改
       const serviceUrl = 'https://vw.usdoc.cn'
       this.downLoadUrl = `${serviceUrl}?format=down&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
-
+      this.handleDownLoad(this.downLoadUrl)
     },
 
     // 复制地址
@@ -270,17 +271,17 @@ export default {
         }
       }
     },
-    async handleDownLoad () {
+    async handleDownLoad (url) {
       const loading = this.$loading({
         text: '下载中...',
         background: 'rgba(0, 0, 0, .6)'
       })
-      const downDataBlob = await axios.get('https://vw.usdoc.cn/?format=down&watermark=内部使用，请勿外传&src=https://usdoc.cn/vw/文件模板.docx', {responseType: 'blob'})
+      const downDataBlob = await axios.get(url, {responseType: 'blob'})
       console.log(downDataBlob)
       const downloadElement = document.createElement('a')
       const href = window.URL.createObjectURL(downDataBlob.data) // 创建下载的链接
       downloadElement.href = href
-      downloadElement.download = '文件测试.docx' // 下载后文件名
+      downloadElement.download = (this.form.fileSrc.split('/').reverse())[0] // 下载后文件名
       document.body.appendChild(downloadElement)
       downloadElement.click() // 点击下载
       document.body.removeChild(downloadElement) // 下载完成移除元素
