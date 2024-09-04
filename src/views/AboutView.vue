@@ -86,13 +86,13 @@ export default {
         options: [ {
           label: 'PDF 文件',
           options: [ {
-            value: 'http://api.usdoc.cn/vw/20240709/pdf文件测试-文件1.pdf', // url地址
-            label: 'PDF .pdf 文件1', // 文件名称
-            size: '4.78M' // 文件大小
+            value: 'http://10.198.6.181:31229/media/202409/03/20240903-184728-766-8099.pdf', // url地址
+            label: '文件可用', // 文件名称
+            size: '376M' // 文件大小
           }, {
-            value: 'http://api.usdoc.cn/vw/20240709/pdf文件测试-文件2.pdf', // url地址
-            label: 'PDF .pdf 文件2', // 文件名称
-            size: '9.7M' // 文件大小
+            value: 'http://10.198.6.181:31229/media/202409/04/20240904-161116-169-855.pdf', // url地址
+            label: '文件可用', // 文件名称
+            size: '66M' // 文件大小
           }, {
             value: 'http://api.usdoc.cn/vw/20240709/pdf文件测试-文件3.pdf',
             label: 'PDF .pdf 文件3',
@@ -212,7 +212,7 @@ export default {
   methods: {
 
     // 预览
-    preview () {
+    async preview () {
       if (!this.form.fileSrc) {
         this.$message({
           message: '请务必选择文件',
@@ -221,8 +221,11 @@ export default {
         return
       }
       // sass服务地址；私有化部署后，需更改
-      const serviceUrl = 'https://vw.usdoc.cn'
-      this.previewUrl = `${serviceUrl}?m=${this.form.previewMode}&ud=${this.form.showDownLoadToolbar}&up=${this.form.showPrintToolbar}&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
+      const serviceUrl = 'http://10.198.32.215'
+      const url = `${serviceUrl}?m=${this.form.previewMode}&ud=${this.form.showDownLoadToolbar}&up=${this.form.showPrintToolbar}&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
+      const previewData = await axios.get(`http://10.198.6.181:31229/api/document/encryptionUrl?url=${encodeURIComponent(url)}`)
+      console.log(previewData)
+      this.previewUrl = previewData.data
       this.iframeLoad()
     },
 
@@ -236,8 +239,9 @@ export default {
         return
       }
       // sass服务地址；私有化部署后，需更改
-      const serviceUrl = 'https://vw.usdoc.cn'
+      const serviceUrl = 'http://10.198.32.215'
       this.downLoadUrl = `${serviceUrl}?format=down&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
+
       this.handleDownLoad(this.downLoadUrl)
     },
 
