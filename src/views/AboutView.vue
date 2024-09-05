@@ -94,9 +94,9 @@ export default {
             label: '文件可用', // 文件名称
             size: '66M' // 文件大小
           }, {
-            value: 'http://api.usdoc.cn/vw/20240709/pdf文件测试-文件3.pdf',
-            label: 'PDF .pdf 文件3',
-            size: '63M'
+            value: 'http://10.198.6.181:31229/media/202408/22/20240822-091457-133-3154.pdf',
+            label: '文件可用',
+            size: '1M'
           } ]
         }, {
           label: 'WORD 文件',
@@ -230,7 +230,7 @@ export default {
     },
 
     // 下载
-    download () {
+    async download () {
       if (!this.form.fileSrc) {
         this.$message({
           message: '请务必选择文件',
@@ -240,9 +240,12 @@ export default {
       }
       // sass服务地址；私有化部署后，需更改
       const serviceUrl = 'http://10.198.32.215'
-      this.downLoadUrl = `${serviceUrl}?format=down&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
-
-      this.handleDownLoad(this.downLoadUrl)
+      const url = `${serviceUrl}?format=down&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
+      const downLoadData = await axios.get(`http://10.198.6.181:31229/api/document/encryptionUrl?url=${encodeURIComponent(url)}`)
+      console.log(downLoadData)
+      this.downLoadUrl = downLoadData.data
+      // this.downLoadUrl = url
+      await this.handleDownLoad(this.downLoadUrl)
     },
 
     // 复制地址
