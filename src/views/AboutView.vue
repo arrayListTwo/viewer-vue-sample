@@ -221,9 +221,9 @@ export default {
         return
       }
       // sass服务地址；私有化部署后，需更改
-      const serviceUrl = 'http://10.198.32.215'
+      const serviceUrl = 'http://appdev.cscec81.com/previewService/'
       const url = `${serviceUrl}?m=${this.form.previewMode}&ud=${this.form.showDownLoadToolbar}&up=${this.form.showPrintToolbar}&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
-      const previewData = await axios.get(`http://10.198.6.181:31229/api/document/encryptionUrl?url=${encodeURIComponent(url)}`)
+      const previewData = await axios.get(`http://appdev.cscec81.com/api/document/encryptionUrl?url=${encodeURIComponent(url)}`)
       console.log(previewData)
       this.previewUrl = previewData.data
       this.iframeLoad()
@@ -239,9 +239,9 @@ export default {
         return
       }
       // sass服务地址；私有化部署后，需更改
-      const serviceUrl = 'http://10.198.32.215'
+      const serviceUrl = 'http://appdev.cscec81.com/previewService/'
       const url = `${serviceUrl}?format=down&watermark=${this.form.watermarkText}&src=${this.form.fileSrc}`
-      const downLoadData = await axios.get(`http://10.198.6.181:31229/api/document/encryptionUrl?url=${encodeURIComponent(url)}`)
+      const downLoadData = await axios.get(`http://appdev.cscec81.com/api/document/encryptionUrl?url=${encodeURIComponent(url)}`)
       console.log(downLoadData)
       this.downLoadUrl = downLoadData.data
       // this.downLoadUrl = url
