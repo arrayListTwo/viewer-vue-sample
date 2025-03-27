@@ -31,3 +31,5 @@ See [Configuration Reference](https://cli.vuejs.org/config/).
 - hidocs：使用付费hidocs提供的sass服务
 
 - xdoc： 使用付费xdoc提供的sass服务
+
+- pdfjs-dist
