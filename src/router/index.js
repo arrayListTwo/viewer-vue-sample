@@ -18,6 +18,11 @@ const routes = [
     // which is lazy-loaded when the route is visited.
     component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
   },
+  {
+    path: '/PDFDemo',
+    name: 'PDFDemo',
+    component: () => import(/* webpackChunkName: "PDFDemo" */ '../views/pdf-demo.vue')
+  },
   // {
   //   path: '/pdfjs',
   //   name: 'pdfjs',
@@ -36,8 +41,8 @@ const routes = [
 ]
 
 const router = new VueRouter({
-  mode: 'history',
-  base: process.env.BASE_URL,
+  mode: 'hash',
+  // base: process.env.BASE_URL,
   routes
 })
 
