@@ -19,15 +19,20 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
   },
   {
-    path: '/PdfAnnotPreview',
-    name: 'PdfAnnotPreview',
-    component: () => import(/* webpackChunkName: "PdfAnnotPreview" */ '../views/PdfAnnotPreview.vue')
-  },
-  {
-    path: '/PdfView',
-    name: 'PdfView',
-    component: () => import(/* webpackChunkName: "PdfView" */ '../views/PdfView.vue')
+    path: '/pdfjs',
+    name: 'pdfjs',
+    component: () => import(/* webpackChunkName: "pdfjs" */ '../views/pdfjs.vue')
   }
+  // {
+  //   path: '/PdfAnnotPreview',
+  //   name: 'PdfAnnotPreview',
+  //   component: () => import(/* webpackChunkName: "PdfAnnotPreview" */ '../views/PdfAnnotPreview.vue')
+  // },
+  // {
+  //   path: '/PdfView',
+  //   name: 'PdfView',
+  //   component: () => import(/* webpackChunkName: "PdfView" */ '../views/PdfView.vue')
+  // }
 ]
 
 const router = new VueRouter({
