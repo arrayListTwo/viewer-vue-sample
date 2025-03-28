@@ -18,11 +18,11 @@ const routes = [
     // which is lazy-loaded when the route is visited.
     component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
   },
-  {
-    path: '/pdfjs',
-    name: 'pdfjs',
-    component: () => import(/* webpackChunkName: "pdfjs" */ '../views/pdfjs.vue')
-  }
+  // {
+  //   path: '/pdfjs',
+  //   name: 'pdfjs',
+  //   component: () => import(/* webpackChunkName: "pdfjs" */ '../views/pdfjs.vue')
+  // }
   // {
   //   path: '/PdfAnnotPreview',
   //   name: 'PdfAnnotPreview',
