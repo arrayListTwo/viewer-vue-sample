@@ -25,64 +25,75 @@ export default defineComponent({
     },
     async loadPDF() {
 
-      // Asynchronous download PDF
-      const loadingTask = pdfjsLib.getDocument(URL.createObjectURL(this.file))
-      loadingTask.onProgress = (progress) => {
-        console.log(`加载进度: ${progress.loaded} / ${progress.total}`)
-      }
-      const pdf = await loadingTask.promise
+      let blobUrl = null
 
-      console.log('PDF加载完成:', pdf)
-      console.log('PDF number:', pdf.numPages)
-      console.log("PDF Info: ", pdf._pdfInfo)
+      try {
+        // 临时创建 URL
+        blobUrl = URL.createObjectURL(this.file)
 
-      // Fetch the first page
-      const page = await pdf.getPage(1)
+        // 初始化加载任务
+        const loadingTask = pdfjsLib.getDocument({
+          url: blobUrl,
+          disableAutoFetch: true // 优化大文件加载
+          // TODO: cMapUrl 什么作用
+        })
 
-      // 拼接文本内容
-      const textContent = await page.getTextContent()
-      const textItems = textContent.items.map(item => item.str).join(' ')
-      console.log('Page Text:', textContent)
-      console.log('Page Text:', textItems)
-      console.log('Page Annotations:', await page.getAnnotations())
-      // 拼接注释
-      const annotations = await page.getAnnotations()
-      annotations.forEach((annot, index) => {
-        console.log(`Annotation ${index}:`, annot)
-      })
+        // 显示加载进度
+        loadingTask.onProgress = (progress) => {
+          const percent = Math.round((progress.loaded / progress.total) * 100)
+          this.progress = `${percent}%`
+          console.log(`加载进度: ${this.progress}`)
+        }
 
-      const scale = 1.5
-      const viewport = page.getViewport({scale})
-      console.log('Viewport transform: ', viewport.transform) // 坐标变换矩阵
+        // 加载文档
+        const pdf = await loadingTask.promise
+        console.log(`文档包含 ${pdf.numPages} 页`)
 
-      // Support HiDPI-screens.
-      const outputScale = window.devicePixelRatio || 1
+        // 加载第一页
+        const page = await pdf.getPage(1)
 
-      // Prepare canvas using PDF page dimensions
-      const canvas = document.getElementById('pdf-canvas')
-      const context = canvas.getContext('2d')
+        // 计算视口
+        const viewport = page.getViewport({
+          scale: 1.5,
+          rotation: 0  // 支持页面旋转
+        })
 
-      canvas.width = Math.floor(viewport.width * outputScale)
-      canvas.height = Math.floor(viewport.height * outputScale)
-      canvas.style.width = `${Math.floor(viewport.width)}px`
-      canvas.style.height = `${Math.floor(viewport.height)}px`
+        // 高清屏适配
+        const outputScale = Math.min(window.devicePixelRatio, 2) // 限制最大缩放
 
-      const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null
+        // 获取Canvas元素
+        const canvas = document.getElementById('pdf-canvas')
+        const ctx = canvas.getContext('2d', {
+          willReadFrequently: true  // 优化频繁读取操作
+        })
 
-      // Render PDF page into canvas context
-      const renderContext = {
-        canvasContext: context,
-        viewport,
-        transform,
-        background: 'rgba(255,255,255,1)',  // 背景色
-        intent: 'display'  // 渲染模式（display/print）
-      }
+        // 设置Canvas尺寸
+        canvas.width = Math.floor(viewport.width * outputScale)
+        canvas.height = Math.floor(viewport.height * outputScale)
+        canvas.style.width = `${Math.floor(viewport.width)}px`
+        canvas.style.height = `${Math.floor(viewport.height)}px`
 
-      const renderTask = page.render(renderContext)
+        // 渲染参数
+        const renderContext = {
+          canvasContext: ctx,
+          viewport,
+          transform: outputScale !== 1
+              ? [outputScale, 0, 0, outputScale, 0, 0]
+              : null
+        }
 
-      renderTask.promise.then(() => {
+        // 执行渲染
+        await page.render(renderContext).promise
         console.log('页面渲染完成')
-      })
+
+      } catch (e) {
+        console.error('加载PDF文件失败:', e)
+      } finally {
+        // 释放 URL
+        if (blobUrl) {
+          URL.revokeObjectURL(blobUrl)
+        }
+      }
     }
   }
 })
