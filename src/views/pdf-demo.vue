@@ -3,13 +3,20 @@
     <h1>Hello PDF</h1>
     <input type="file" @change="onFileChange"/>
     <h2 style="text-align: center">PDF预览</h2>
-    <div class="page-container">
+    <div class="page-container"  @mouseup="checkSelection">
       <!--      pdf渲染-->
       <canvas id="pdf-canvas" style="border: 1px solid black; direction: ltr"></canvas>
       <!--      文本渲染-->
       <div id="text-layer"></div>
       <!--      标注渲染-->
       <div id="annotationLayer" class="annotation-layer"></div>
+      <!-- 文本选中悬浮框 -->
+      <div v-if="showSelectionToolbar"
+           class="selection-toolbar"
+           :style="toolbarPosition">
+        <button @click="createHighlight">高亮</button>
+        <button @click="createUnderline">下划线</button>
+      </div>
     </div>
   </div>
 </template>
@@ -23,7 +30,11 @@ export default defineComponent({
   name: "pdf-demo",
   data() {
     return {
-      file: null
+      file: null,
+      page: null,
+      showSelectionToolbar: false,
+      toolbarPosition: { left: '0', top: '0' },
+      currentSelection: null
     }
   },
   async mounted() {
@@ -68,10 +79,10 @@ export default defineComponent({
         console.log(`文档包含 ${pdf.numPages} 页`)
 
         // 加载第一页
-        const page = await pdf.getPage(1)
+        this.page = await pdf.getPage(1)
 
         // 计算视口
-        const viewport = page.getViewport({
+        const viewport = this.page.getViewport({
           scale: 1.5,
           rotation: 0  // 支持页面旋转
         })
@@ -101,14 +112,14 @@ export default defineComponent({
         }
 
         // 执行渲染
-        await page.render(renderContext).promise
+        await this.page.render(renderContext).promise
         console.log('页面渲染完成')
 
         // 添加文本层
-        await this.renderTextLayer(page, viewport)
+        await this.renderTextLayer(this.page, viewport)
 
         // 渲染标注
-        await this.renderAnnotations(page, viewport)
+        await this.renderAnnotations(this.page)
 
       } catch (e) {
         console.error('加载PDF文件失败:', e)
@@ -141,7 +152,13 @@ export default defineComponent({
     },
 
     // 渲染标注
-    async renderAnnotations(page, viewport) {
+    async renderAnnotations(page) {
+
+      const viewport = page.getViewport({
+        scale: 1.5,
+        rotation: 0  // 支持页面旋转
+      })
+
       const annotationLayer = document.getElementById('annotationLayer')
 
       // 获取标注列表
@@ -233,6 +250,127 @@ export default defineComponent({
 
       // container.appendChild(icon)
       container.appendChild(popup)
+    },
+
+    // 检测文本选择
+    async checkSelection(e) {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed) {
+        this.showSelectionToolbar = false
+        return
+      }
+
+      // 获取PDF.js的文本节点信息
+      const range = selection.getRangeAt(0)
+      const startNode = this.findTextNode(range.startContainer)
+      const endNode = this.findTextNode(range.endContainer)
+
+      if (!startNode || !endNode) return
+
+      // 获取选中文本的坐标信息
+      const textContent = await this.page.getTextContent()
+      const quadPoints = await this.getSelectedQuadPoints(
+          range,
+          textContent
+      )
+
+      this.currentSelection = {
+        quadPoints,
+        text: selection.toString()
+      }
+
+      // 计算悬浮框位置
+      const rect = range.getBoundingClientRect()
+      this.toolbarPosition = {
+        left: `${rect.left + window.scrollX}px`,
+        top: `${rect.top + window.scrollY - 40}px`
+      }
+      this.showSelectionToolbar = true
+    },
+
+    // 查找PDF文本节点
+    findTextNode(node) {
+      while (node && !node.classList?.contains('text-layer')) {
+        node = node.parentNode
+      }
+      debugger
+      return node?.dataset?.fontName ? node : null
+    },
+
+    // 获取选中区域的四边形坐标（核心）
+    async getSelectedQuadPoints(range, textContent) {
+      const startNode = range.startContainer.parentNode
+      const endNode = range.endContainer.parentNode
+
+      // 获取起始字符索引
+      const startIdx = parseInt(startNode.dataset.geIdx)
+      const endIdx = parseInt(endNode.dataset.geIdx)
+          + range.endOffset
+
+      // 生成四边形坐标
+      return textContent.items
+          .slice(startIdx, endIdx + 1)
+          .flatMap(item => item.transform)
+    },
+
+    // 创建高亮标注
+    async createHighlight() {
+      const annotation = {
+        subtype: 'Highlight',
+        quadPoints: this.currentSelection.quadPoints,
+        color: [1, 1, 0], // 黄色
+        contents: this.currentSelection.text
+      }
+
+      // 添加到PDF文档
+      const annotationRef = await this.pdfDoc.context.createObject({
+        Type: 'Annot',
+        Subtype: 'Highlight',
+        QuadPoints: this.normalizeQuadPoints(annotation.quadPoints),
+        Rect: this.calculateAnnotationRect(annotation.quadPoints),
+        Contents: annotation.contents,
+        Color: annotation.color
+      })
+
+      // 更新渲染
+      this.page.annotations.push(annotationRef)
+      await this.renderAnnotations(this.page)
+      this.showSelectionToolbar = false
+    },
+
+    // 坐标归一化处理
+    normalizeQuadPoints(points) {
+      return points.map((val, idx) =>
+          idx % 2 === 1 ? this.viewport.height - val : val
+      )
+    },
+
+    // 计算标注的边界矩形
+    calculateAnnotationRect(quadPoints) {
+      const xs = []
+      const ys = []
+
+      for (let i = 0; i < quadPoints.length; i += 2) {
+        xs.push(quadPoints[i])
+        ys.push(quadPoints[i + 1])
+      }
+
+      return [
+        Math.min(...xs),
+        Math.min(...ys),
+        Math.max(...xs),
+        Math.max(...ys)
+      ]
+    },
+
+    // 四边形坐标转换（适配PDF坐标系）
+    transformQuadPoints(quadPoints) {
+      const viewport = this.viewport
+      return quadPoints.map((val, idx) => {
+        return idx % 2 === 0
+            ? val / viewport.scale
+            : (viewport.height - val) / viewport.scale
+      })
     }
   }
 })
