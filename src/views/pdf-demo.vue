@@ -4,8 +4,12 @@
     <input type="file" @change="onFileChange"/>
     <h2 style="text-align: center">PDF预览</h2>
     <div class="page-container">
+      <!--      pdf渲染-->
       <canvas id="pdf-canvas" style="border: 1px solid black; direction: ltr"></canvas>
+      <!--      文本渲染-->
       <div id="text-layer"></div>
+      <!--      标注渲染-->
+      <div id="annotationLayer" class="annotation-layer"></div>
     </div>
   </div>
 </template>
@@ -103,6 +107,9 @@ export default defineComponent({
         // 添加文本层
         await this.renderTextLayer(page, viewport)
 
+        // 渲染标注
+        await this.renderAnnotations(page, viewport)
+
       } catch (e) {
         console.error('加载PDF文件失败:', e)
       } finally {
@@ -112,24 +119,120 @@ export default defineComponent({
         }
       }
     },
+
+    // 添加文本层
     async renderTextLayer(page, viewport) {
       console.log('渲染文本层')
       console.log(page, viewport)
-      const textLayerDiv = document.getElementById('text-layer')
-      textLayerDiv.innerHTML = ''
+      const textLayer = document.getElementById('text-layer')
+      textLayer.innerHTML = ''
       // 关键修复：设置CSS变量
-      textLayerDiv.style.setProperty('--scale-factor', viewport.scale)
+      textLayer.style.setProperty('--scale-factor', viewport.scale)
 
       const textContent = await page.getTextContent()
 
       // 创建文本层（新API）
       await pdfjsLib.renderTextLayer({
         textContent: textContent,
-        container: textLayerDiv,
+        container: textLayer,
         viewport: viewport,
         textDivs: []
       })
+    },
 
+    // 渲染标注
+    async renderAnnotations(page, viewport) {
+      const annotationLayer = document.getElementById('annotationLayer')
+
+      // 获取标注列表
+      const annotations = await page.getAnnotations()
+
+      // 清空旧内容
+      annotationLayer.innerHTML = ''
+
+      // // 使用官方API渲染注释层
+      // await pdfjsLib.AnnotationLayer.render({
+      //   viewport: viewport,
+      //   div: annotationLayer,
+      //   annotations: await page.getAnnotations(),
+      //   page: page,
+      //   renderInteractiveForms: true
+      // })
+
+      annotations.forEach(annotation => {
+        console.log(JSON.stringify(annotation, 2));
+        this.renderSingleAnnotation(annotation, viewport, annotationLayer)
+      })
+    },
+
+    renderSingleAnnotation(annotation, viewport, container) {
+
+      // 逃过隐藏注释
+      if (annotation.viewable === false) return
+
+      // 转换坐标到视口坐标系
+      const rect = pdfjsLib.Util.normalizeRect(annotation.rect) // 原始PDF坐标
+      const transformedRect = viewport.convertToViewportRectangle(rect) // 视口转换后坐标
+      // 计算屏幕坐标系位置（Y轴翻转）
+      const [x1, y1, x2, y2] = transformedRect
+      const width = x2 - x1
+      const height = y1 -y2
+
+      // 创建注释容器
+      const div = document.createElement('div')
+      div.className = 'pdf-annotation'
+      div.style.position = 'absolute'
+
+      // 设置位置和尺寸
+      div.style.left = `${x1}px`
+      div.style.top = `${y2}px` // PDF坐标系转换为屏幕坐标系
+      div.style.width = `${width}px`
+      div.style.height = `${height}px`
+      // 添加变换补偿（处理旋转和缩放）
+      // div.style.transform = `matrix(${viewport.transform.join(',')})`
+
+
+      // 根据注释类型添加样式
+      switch (annotation.subtype) {
+        case 'Highlight':
+          // div.style.backgroundColor = 'rgba(255,0,59,0.8)'
+          div.classList.add('highlight-annotation')
+          this.renderTextAnnotation(div, annotation)
+          break
+        case 'Underline':
+          div.style.borderBottom = '2px solid rgba(255, 0, 0, 0.6)'
+          break
+        case 'Text':
+          this.renderTextAnnotation(div, annotation)
+          break
+          // 添加其他类型处理...
+      }
+      container.appendChild(div)
+    },
+
+    renderTextAnnotation(container, annotation) {
+
+      // 创建文本注释图标
+      const icon = document.createElement('div')
+      icon.className = 'text-annotation-icon'
+      icon.innerHTML = '💬'
+
+      // 创建弹出内容
+      const popup = document.createElement('div')
+      popup.className = 'annotation-popup'
+      popup.textContent = annotation.contentsObj.str || ''
+
+      // 交互逻辑
+      icon.addEventListener('click', () => {
+        popup.style.display = popup.style.display === 'block' ? 'none' : 'block'
+      })
+
+      // icon.addEventListener('mouseout', () => {
+      //   popup.style.display = 'none'
+      // })
+
+      container.appendChild(icon)
+      container.appendChild(popup)
     }
   }
 })
@@ -163,5 +266,49 @@ export default defineComponent({
 
 #text-layer ::selection {
   background: rgba(0, 0, 255, 0.3);
+}
+
+.annotation-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto; /* 允许交互 */
+  width: 100%;
+  height: 100%;
+  /* 处理PDF旋转 */
+  transform-origin: 0 0;
+}
+
+/* 修正链接注释位置 */
+.annotation-layer .linkAnnotation {
+  position: absolute;
+  transform-origin: 0 0;
+}
+
+/* 高亮标注 */
+/*.highlight-annotation {
+  mix-blend-mode: multiply; !* 实现类似PDF的高亮效果 *!
+}*/
+
+/* 文本注释 */
+.text-annotation-icon {
+  cursor: pointer;
+  font-size: 20px;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.annotation-popup {
+  display: none;
+  position: absolute;
+  left: 24px;
+  top: 0;
+  background: #b6ece8;
+  border: 1px solid #ccc;
+  padding: 8px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  z-index: 100;
 }
 </style>

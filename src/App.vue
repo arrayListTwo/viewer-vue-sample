@@ -7,6 +7,7 @@
       <router-link to="/PdfView">PdfView</router-link> |
       <router-link to="/pdfjs">pdfjs</router-link> |
       <router-link to="/PDFDemo">PDFDemo</router-link>
+      <div>我是内容</div>
     </nav>
     <router-view/>
   </div>
