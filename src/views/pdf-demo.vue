@@ -213,9 +213,9 @@ export default defineComponent({
     renderTextAnnotation(container, annotation) {
 
       // 创建文本注释图标
-      const icon = document.createElement('div')
-      icon.className = 'text-annotation-icon'
-      icon.innerHTML = '💬'
+      // const icon = document.createElement('div')
+      container.className = 'text-annotation-icon'
+      // icon.innerHTML = '💬'
 
       // 创建弹出内容
       const popup = document.createElement('div')
@@ -223,7 +223,7 @@ export default defineComponent({
       popup.textContent = annotation.contentsObj.str || ''
 
       // 交互逻辑
-      icon.addEventListener('click', () => {
+      container.addEventListener('click', () => {
         popup.style.display = popup.style.display === 'block' ? 'none' : 'block'
       })
 
@@ -231,7 +231,7 @@ export default defineComponent({
       //   popup.style.display = 'none'
       // })
 
-      container.appendChild(icon)
+      // container.appendChild(icon)
       container.appendChild(popup)
     }
   }
