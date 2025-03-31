@@ -272,7 +272,7 @@ export default defineComponent({
   position: absolute;
   left: 0;
   top: 0;
-  pointer-events: auto; /* 允许交互 */
+  pointer-events: none; /* 允许交互 */
   width: 100%;
   height: 100%;
   /* 处理PDF旋转 */
@@ -292,6 +292,7 @@ export default defineComponent({
 
 /* 文本注释 */
 .text-annotation-icon {
+  pointer-events: auto;
   cursor: pointer;
   font-size: 20px;
   position: absolute;
