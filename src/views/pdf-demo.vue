@@ -3,11 +3,11 @@
     <h1>Hello PDF</h1>
     <input type="file" @change="onFileChange"/>
     <h2 style="text-align: center">PDF预览</h2>
-    <div class="page-container"  @mouseup="checkSelection">
+    <div ref="pdfContainer" class="page-container"  @mouseup="checkSelection">
       <!--      pdf渲染-->
       <canvas id="pdf-canvas" style="border: 1px solid black; direction: ltr"></canvas>
       <!--      文本渲染-->
-      <div id="text-layer"></div>
+      <div id="text-layer" ref="textLayer"></div>
       <!--      标注渲染-->
       <div id="annotationLayer" class="annotation-layer"></div>
       <!-- 文本选中悬浮框 -->
@@ -31,6 +31,7 @@ export default defineComponent({
   data() {
     return {
       file: null,
+      pdfDoc: null,
       page: null,
       showSelectionToolbar: false,
       toolbarPosition: { left: '0', top: '0' },
@@ -44,8 +45,8 @@ export default defineComponent({
     initWorker() {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
     },
-    onFileChange(e) {
-      this.file = e.target.files[0]
+    onFileChange(event) {
+      this.file = event.target.files[0]
       this.$nextTick(() => {
         this.loadPDF()
       })
@@ -62,6 +63,7 @@ export default defineComponent({
         const loadingTask = pdfjsLib.getDocument({
           url: blobUrl,
           disableAutoFetch: true, // 优化大文件加载
+          // enableTextSelection: true // 启用增强文本选择
           // cMapUrl: '/cmaps/',
           // cMapPacked: true,
           // TODO: cMapUrl 什么作用
@@ -75,11 +77,11 @@ export default defineComponent({
         }
 
         // 加载文档
-        const pdf = await loadingTask.promise
-        console.log(`文档包含 ${pdf.numPages} 页`)
+        this.pdfDoc = await loadingTask.promise
+        console.log(`文档包含 ${this.pdfDoc.numPages} 页`)
 
         // 加载第一页
-        this.page = await pdf.getPage(1)
+        this.page = await this.pdfDoc.getPage(1)
 
         // 计算视口
         const viewport = this.page.getViewport({
@@ -142,13 +144,25 @@ export default defineComponent({
 
       const textContent = await page.getTextContent()
 
+      // 创建用于收集文本节点的数组
+      const textDivs = []
+
       // 创建文本层（新API）
       await pdfjsLib.renderTextLayer({
-        textContent: textContent,
+        textContent,
         container: textLayer,
         viewport: viewport,
-        textDivs: []
+        textDivs: textDivs,
+        // enhanceTextSelection: true // 启用增强文本选择
+      }).promise
+
+      // 添加索引标记
+      textDivs.forEach((div, index) => {
+        div.dataset.textIndex = index + '' // 添加自定义属性
+        div.dataset.pageNumber = page.pageNumber // 添加页码
       })
+
+      // console.log('文本层 DOM 结构:', this.$refs.textLayer.innerHTML)
     },
 
     // 渲染标注
@@ -254,25 +268,24 @@ export default defineComponent({
 
     // 检测文本选择
     async checkSelection(e) {
+      console.log('e: ', e)
       const selection = window.getSelection()
-      if (!selection || selection.isCollapsed) {
+      if (!selection.rangeCount || selection.toString().length <= 0) {
         this.showSelectionToolbar = false
         return
       }
 
-      // 获取PDF.js的文本节点信息
       const range = selection.getRangeAt(0)
-      const startNode = this.findTextNode(range.startContainer)
-      const endNode = this.findTextNode(range.endContainer)
+      const startNode = range.startContainer
+      const endNode = range.endContainer
 
-      if (!startNode || !endNode) return
+      // 获取 PDF.js 文本项索引
+      const startIndex = parseInt(startNode.parentNode.dataset.textIndex)
+      const endIndex = parseInt(endNode.parentNode.dataset.textIndex)
+          + range.endOffset
 
-      // 获取选中文本的坐标信息
-      const textContent = await this.page.getTextContent()
-      const quadPoints = await this.getSelectedQuadPoints(
-          range,
-          textContent
-      )
+      // 通过索引获取精确坐标
+      const quadPoints = await this.getQuadPointsByIndex(startIndex, endIndex)
 
       this.currentSelection = {
         quadPoints,
@@ -281,36 +294,68 @@ export default defineComponent({
 
       // 计算悬浮框位置
       const rect = range.getBoundingClientRect()
+
+      // 渲染容器的位置
+      const pdfContainer = this.$refs.pdfContainer
+      const pdfContainerRect = pdfContainer.getBoundingClientRect()
+      console.log('选区坐标 left: ', rect.left)
+      console.log('选区坐标 top: ', rect.top)
+      const top = pdfContainerRect.top < 0 ? rect.bottom + Math.abs(pdfContainerRect.top) : rect.bottom - pdfContainerRect.top
       this.toolbarPosition = {
         left: `${rect.left + window.scrollX}px`,
-        top: `${rect.top + window.scrollY - 40}px`
+        top: `${top}px`
       }
       this.showSelectionToolbar = true
+
+      console.log('选区节点链:',
+          Array.from(document.getSelection().anchorNode.parentNode.parentNode.children)
+      )
+    },
+
+    // 坐标获取优化方法
+    async getQuadPointsByIndex(startIdx, endIdx) {
+      const textContent = await this.page.getTextContent()
+      return textContent.items
+          .slice(startIdx, endIdx)
+          .map(item => [
+            item.transform[4],          // x1
+            item.transform[5],          // y1
+            item.transform[4] + item.width, // x2
+            item.transform[5] - item.height // y2
+          ])
     },
 
     // 查找PDF文本节点
     findTextNode(node) {
-      while (node && !node.classList?.contains('text-layer')) {
+      // 向上查找包含 data-page-number 属性的元素
+      while (node && node !== document.body) {
+        if (node.dataset?.pageNumber) {
+          return node
+        }
         node = node.parentNode
       }
-      debugger
-      return node?.dataset?.fontName ? node : null
+      return null
     },
 
     // 获取选中区域的四边形坐标（核心）
-    async getSelectedQuadPoints(range, textContent) {
-      const startNode = range.startContainer.parentNode
-      const endNode = range.endContainer.parentNode
+    async getSelectedQuadPoints(range) {
+      const startSpan = range.startContainer.parentNode
+      const endSpan = range.endContainer.parentNode
 
-      // 获取起始字符索引
-      const startIdx = parseInt(startNode.dataset.geIdx)
-      const endIdx = parseInt(endNode.dataset.geIdx)
-          + range.endOffset
+      // 通过 data 属性获取索引
+      const startIdx = parseInt(startSpan.dataset.textIndex)
+      const endIdx = parseInt(endSpan.dataset.textIndex) + range.endOffset
 
-      // 生成四边形坐标
+      // 获取对应文本项
+      const textContent = await this.page.getTextContent()
       return textContent.items
-          .slice(startIdx, endIdx + 1)
-          .flatMap(item => item.transform)
+          .slice(startIdx, endIdx)
+          .map(item => [
+            item.transform[4],          // x1
+            item.transform[5],          // y1
+            item.transform[4] + item.width, // x2
+            item.transform[5] - item.height // y2
+          ])
     },
 
     // 创建高亮标注
@@ -371,7 +416,9 @@ export default defineComponent({
             ? val / viewport.scale
             : (viewport.height - val) / viewport.scale
       })
-    }
+    },
+
+    createUnderline(){}
   }
 })
 </script>
@@ -449,5 +496,37 @@ export default defineComponent({
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
   min-width: 200px;
   z-index: 100;
+}
+
+/* 文本选中悬浮框 */
+.selection-toolbar {
+  position: absolute;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border-radius: 4px;
+  padding: 4px;
+  z-index: 9999;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+
+  button {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    background: #f8f8f8;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #eee;
+      border-color: #ccc;
+    }
+  }
+}
+
+/* 增强文本选择体验 */
+::selection {
+  background: rgba(255,255,0,0.3);
 }
 </style>
