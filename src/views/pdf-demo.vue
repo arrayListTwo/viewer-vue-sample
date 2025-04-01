@@ -24,6 +24,7 @@
 <script>
 import {defineComponent} from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
+import { PDFDocument, rgb } from "pdf-lib";
 import 'pdfjs-dist/web/pdf_viewer.css' // 引入文本层样式
 
 export default defineComponent({
@@ -35,7 +36,8 @@ export default defineComponent({
       page: null,
       showSelectionToolbar: false,
       toolbarPosition: { left: '0', top: '0' },
-      currentSelection: null
+      currentSelection: null,
+      modifiedPdf: null, // 存储修改后的PDF
     }
   },
   async mounted() {
@@ -48,20 +50,17 @@ export default defineComponent({
     onFileChange(event) {
       this.file = event.target.files[0]
       this.$nextTick(() => {
-        this.loadPDF()
+        let blobUrl = URL.createObjectURL(this.file)
+        this.loadPDF(blobUrl)
       })
     },
-    async loadPDF() {
-
-      let blobUrl = null
+    async loadPDF(file) {
 
       try {
-        // 临时创建 URL
-        blobUrl = URL.createObjectURL(this.file)
 
         // 初始化加载任务
         const loadingTask = pdfjsLib.getDocument({
-          url: blobUrl,
+          url: file,
           disableAutoFetch: true, // 优化大文件加载
           // enableTextSelection: true // 启用增强文本选择
           // cMapUrl: '/cmaps/',
@@ -127,8 +126,8 @@ export default defineComponent({
         console.error('加载PDF文件失败:', e)
       } finally {
         // 释放 URL
-        if (blobUrl) {
-          URL.revokeObjectURL(blobUrl)
+        if (file) {
+          URL.revokeObjectURL(file)
         }
       }
     },
@@ -360,27 +359,80 @@ export default defineComponent({
 
     // 创建高亮标注
     async createHighlight() {
-      const annotation = {
-        subtype: 'Highlight',
-        quadPoints: this.currentSelection.quadPoints,
-        color: [1, 1, 0], // 黄色
-        contents: this.currentSelection.text
-      }
 
-      // 添加到PDF文档
-      const annotationRef = await this.pdfDoc.context.createObject({
-        Type: 'Annot',
-        Subtype: 'Highlight',
-        QuadPoints: this.normalizeQuadPoints(annotation.quadPoints),
-        Rect: this.calculateAnnotationRect(annotation.quadPoints),
-        Contents: annotation.contents,
-        Color: annotation.color
+      // 1、从file对象获取原始PDF字节
+      const existingPdfBytes = await this.file.arrayBuffer()
+
+      // 2、使用pdf-lib加载并修改
+      const pdfLibDoc = await PDFDocument.load(existingPdfBytes)
+
+      if (!pdfLibDoc || !this.currentSelection) return
+
+      const page = pdfLibDoc.getPage(this.page.pageNumber - 1)
+
+      const { quadPoints, text } = this.currentSelection
+
+      // 转换坐标系（关键！）
+      const pageHeight = page.getHeight()
+      const convertedQuads = this.convertCoordinates(quadPoints, pageHeight)
+
+      // 创建高亮注释
+      page.addAnnotation({
+        subtype: 'Highlight',
+        rect: this.calcAnnotationRect(convertedQuads),
+        quadPoints: convertedQuads.flat(),
+        color: rgb(1, 1, 0), // 黄色
+        contents: text
       })
 
-      // 更新渲染
-      this.page.annotations.push(annotationRef)
-      await this.renderAnnotations(this.page)
-      this.showSelectionToolbar = false
+      // 4. 保存修改后的PDF
+      const modifiedBytes = await pdfLibDoc.save()
+      this.modifiedPdf = URL.createObjectURL(
+          new Blob([modifiedBytes], { type: 'application/pdf' })
+      )
+
+      // 5. 重新加载修改后的PDF
+      await this.loadModifiedPdf()
+    },
+
+    // 坐标转换（pdf.js → pdf-lib）
+    convertCoordinates(quadPoints, pageHeight) {
+      return quadPoints.map(([x1, y1, x2, y2]) => [
+        x1,
+        pageHeight - y2, // Y轴翻转
+        x2,
+        pageHeight - y1  // Y轴翻转并交换上下坐标
+      ])
+    },
+
+    // 计算注释边界框
+    calcAnnotationRect(convertedQuads) {
+      const xs = convertedQuads.flatMap(([x1, _, x2]) => [x1, x2])
+      const ys = convertedQuads.flatMap(([_, y1, __, y2]) => [y1, y2])
+
+      return [
+        Math.min(...xs),
+        Math.min(...ys),
+        Math.max(...xs),
+        Math.max(...ys)
+      ]
+    },
+
+    async loadModifiedPdf() {
+      // 销毁旧PDF实例
+      if (this.pdfDoc) {
+        this.pdfDoc.destroy()
+      }
+
+      // 使用PDF.js加载新PDF
+      const loadingTask = pdfjsLib.getDocument({
+        url: this.modifiedPdf,
+        enableXfa: true
+      })
+
+      this.pdfDoc = await loadingTask.promise
+      this.currentPage = await this.pdfDoc.getPage(1)
+      await this.renderPage(this.modifiedPdf)
     },
 
     // 坐标归一化处理
