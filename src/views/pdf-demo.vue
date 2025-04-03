@@ -32,7 +32,7 @@ export default defineComponent({
   name: "pdf-demo",
   data() {
     return {
-      scale: 3,
+      scale: 1.5,
       file: null,
       pdfDoc: null,
       page: null,
@@ -54,39 +54,48 @@ export default defineComponent({
       const page = this.page
       const viewport = this.viewport;
       const scale = viewport.scale; // 获取视口缩放比例
+      const outputScale = Math.min(window.devicePixelRatio, 2); // 限制最大缩放
       console.log('scale: ', scale)
 
       const contents = await page.getTextContent()
       contents.items.forEach((item, index) => {
-        const colorBlock = document.createElement('div')
+        const colorBlock = document.createElement('div');
 
         // 转换PDF坐标到视口坐标
-        const [x, baselineY] = viewport.convertToViewportPoint(
+        const [x1, baselineY] = viewport.convertToViewportPoint(
             item.transform[4],
             item.transform[5]
         );
 
-        if(index < 5) {
-          console.log('===============================')
-          console.log('[x, baselineY]: ', [x, baselineY])
-          console.log('item: ', item)
-          console.log('===============================')
+        if (index < 5) {
+          console.log('===============================');
+          console.log('[x1, baselineY]: ', [x1, baselineY]);
+          console.log('item: ', item);
+          console.log('===============================');
         }
 
+        // 使用变换矩阵计算文本块的高度
+        const transform = item.transform;
+        const y1 = transform[5]; // 基线Y坐标
+        const y2 = y1 - item.height; // 文本块顶部Y坐标
+
+        // 转换到视口坐标
+        const [x1Viewport, y1Viewport] = viewport.convertToViewportPoint(transform[4], y1);
+        const [x2Viewport, y2Viewport] = viewport.convertToViewportPoint(transform[4] + item.width, y2);
+
         // 计算实际尺寸（PDF单位转像素）
-        const width = item.width * scale;
-        const height = item.height * scale;
+        const width = (x2Viewport - x1Viewport) * outputScale;
+        const height = (y1Viewport - y2Viewport) * outputScale;
 
         // 计算垂直位置（PDF坐标系Y轴与浏览器相反）
-        // const top = baselineY - height;
-        const top = baselineY - height;
+        const top = y2Viewport * outputScale;
+        const left = x1Viewport * outputScale;
 
         colorBlock.style.position = 'absolute';
         colorBlock.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
         colorBlock.style.top = `${top}px`;
-        colorBlock.style.left = `${x}px`;
+        colorBlock.style.left = `${left}px`;
         colorBlock.style.width = `${width}px`;
-        // colorBlock.style.height = `${height * ((scale - 1) / 2 + 1)}px`;
         colorBlock.style.height = `${height}px`;
 
         pdfContainer.appendChild(colorBlock);
