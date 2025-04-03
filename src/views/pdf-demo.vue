@@ -1,11 +1,12 @@
 <template>
   <div class="pdf-wrapper">
     <h1>Hello PDF</h1>
-    <input type="file" @change="onFileChange"/>
+    <input type="file" @change="onFileChange"/><br>
+    <button @click="handleClick">一个按钮</button>
     <h2 style="text-align: center">PDF预览</h2>
     <div ref="pdfContainer" class="page-container"  @mouseup="checkSelection">
       <!--      pdf渲染-->
-      <canvas id="pdf-canvas" style="border: 1px solid black; direction: ltr"></canvas>
+      <canvas id="pdf-canvas" style="direction: ltr"></canvas>
       <!--      文本渲染-->
       <div id="text-layer" ref="textLayer"></div>
       <!--      标注渲染-->
@@ -31,9 +32,11 @@ export default defineComponent({
   name: "pdf-demo",
   data() {
     return {
+      scale: 3,
       file: null,
       pdfDoc: null,
       page: null,
+      viewport: null,
       showSelectionToolbar: false,
       toolbarPosition: { left: '0', top: '0' },
       currentSelection: null,
@@ -42,8 +45,53 @@ export default defineComponent({
   },
   async mounted() {
     this.initWorker()
+    // await this.loadPDF('/files/_ellis_2023_dance.pdf')
+    await this.loadPDF('/files/DBDADFA307608821A47DD67DD0B_69EFD272_1BEDC.pdf')
   },
   methods: {
+    async handleClick() {
+      const pdfContainer = this.$refs.pdfContainer
+      const page = this.page
+      const viewport = this.viewport;
+      const scale = viewport.scale; // 获取视口缩放比例
+      console.log('scale: ', scale)
+
+      const contents = await page.getTextContent()
+      contents.items.forEach((item, index) => {
+        const colorBlock = document.createElement('div')
+
+        // 转换PDF坐标到视口坐标
+        const [x, baselineY] = viewport.convertToViewportPoint(
+            item.transform[4],
+            item.transform[5]
+        );
+
+        if(index < 5) {
+          console.log('===============================')
+          console.log('[x, baselineY]: ', [x, baselineY])
+          console.log('item: ', item)
+          console.log('===============================')
+        }
+
+        // 计算实际尺寸（PDF单位转像素）
+        const width = item.width * scale;
+        const height = item.height * scale;
+
+        // 计算垂直位置（PDF坐标系Y轴与浏览器相反）
+        // const top = baselineY - height;
+        const top = baselineY - height;
+
+        colorBlock.style.position = 'absolute';
+        colorBlock.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+        colorBlock.style.top = `${top}px`;
+        colorBlock.style.left = `${x}px`;
+        colorBlock.style.width = `${width}px`;
+        // colorBlock.style.height = `${height * ((scale - 1) / 2 + 1)}px`;
+        colorBlock.style.height = `${height}px`;
+
+        pdfContainer.appendChild(colorBlock);
+      })
+    },
     initWorker() {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
     },
@@ -84,10 +132,10 @@ export default defineComponent({
 
         // 计算视口
         const viewport = this.page.getViewport({
-          scale: 1,
+          scale: this.scale,
           rotation: 0  // 支持页面旋转
         })
-
+        this.viewport = viewport
         console.log('viewport: ', viewport)
 
         // 高清屏适配
@@ -170,7 +218,7 @@ export default defineComponent({
     async renderAnnotations(page) {
 
       const viewport = page.getViewport({
-        scale: 1,
+        scale: this.scale,
         rotation: 0  // 支持页面旋转
       })
 
@@ -274,7 +322,7 @@ export default defineComponent({
         this.showSelectionToolbar = false
         return
       }
-debugger
+
       const range = selection.getRangeAt(0)
       console.log('range: ', range)
 
@@ -289,6 +337,7 @@ debugger
 
       // 获取 PDF.js 文本项索引
       const startIndex = getTextNodeIndex(range.startContainer)
+      console.log('startIndex: ', startIndex)
       const endIndex = getTextNodeIndex(range.endContainer) + range.endOffset
 
       // 通过索引获取精确坐标
@@ -322,7 +371,7 @@ debugger
     // 坐标获取优化方法
     async getQuadPointsByIndex(startIdx, endIdx) {
       const viewport = this.page.getViewport({
-        scale: 1,
+        scale: this.scale,
         rotation: 0  // 支持页面旋转
       })
       const textContent = await this.page.getTextContent()
@@ -652,5 +701,9 @@ debugger
 /* 增强文本选择体验 */
 ::selection {
   background: rgba(255,255,0,0.3);
+}
+
+* {
+  box-sizing: border-box;
 }
 </style>
