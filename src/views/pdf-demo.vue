@@ -59,6 +59,9 @@ export default defineComponent({
 
       const contents = await page.getTextContent()
       contents.items.forEach((item, index) => {
+
+        if (!item.str.trim()) return
+
         const colorBlock = document.createElement('div');
 
         // 转换PDF坐标到视口坐标
@@ -67,20 +70,29 @@ export default defineComponent({
             item.transform[5]
         );
 
-        if (index < 5) {
-          console.log('===============================');
-          console.log('[x1, baselineY]: ', [x1, baselineY]);
-          console.log('item: ', item);
-          console.log('===============================');
-        }
+        // 增加的偏移量
+        const extraOffset = 5 * scale;
+        // 使用convertToViewportPoint转换坐标后的写法
+        const left = x1
+        const width = item.width * scale;
+        const top = baselineY - item.height * scale
+        const height = item.height * scale  + extraOffset;
+
+        // 直接根据transform的写法
+        // const left = item.transform[4] * scale
+        // const width = item.width * scale;
+        // const height = item.height * scale;
+        // const top = viewport.height - (item.transform[5] * scale) - item.height * scale
 
         // 使用变换矩阵计算文本块的高度
-        const transform = item.transform;
+        /*const transform = item.transform;
         const y1 = transform[5]; // 基线Y坐标
-        const y2 = y1 - item.height; // 文本块顶部Y坐标
+        const y2 = y1 + item.height; // 文本块顶部Y坐标
 
         // 转换到视口坐标
+        // 左下角坐标
         const [x1Viewport, y1Viewport] = viewport.convertToViewportPoint(transform[4], y1);
+        // 右上角坐标
         const [x2Viewport, y2Viewport] = viewport.convertToViewportPoint(transform[4] + item.width, y2);
 
         // 计算实际尺寸（PDF单位转像素）
@@ -89,7 +101,7 @@ export default defineComponent({
 
         // 计算垂直位置（PDF坐标系Y轴与浏览器相反）
         const top = y2Viewport * outputScale;
-        const left = x1Viewport * outputScale;
+        const left = x1Viewport * outputScale;*/
 
         colorBlock.style.position = 'absolute';
         colorBlock.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
