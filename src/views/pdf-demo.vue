@@ -74,9 +74,13 @@ export default defineComponent({
         const extraOffset = 5 * scale;
         // 使用convertToViewportPoint转换坐标后的写法
         const left = x1
-        const width = item.width * scale;
+        let width = item.width * scale;
         const top = baselineY - item.height * scale
         const height = item.height * scale  + extraOffset;
+
+        if(item.str.length >= 2) {
+          width = width / (item.str.length) * Math.floor((item.str.length / 2))
+        }
 
         // 直接根据transform的写法
         // const left = item.transform[4] * scale
