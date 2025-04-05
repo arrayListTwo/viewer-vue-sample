@@ -363,10 +363,10 @@ export default defineComponent({
       // 获取 PDF.js 文本项索引
       const startIndex = getTextNodeIndex(range.startContainer)
       console.log('startIndex: ', startIndex)
-      const endIndex = getTextNodeIndex(range.endContainer) + range.endOffset
+      const endIndex = getTextNodeIndex(range.endContainer)
 
       // 通过索引获取精确坐标
-      const quadPoints = await this.getQuadPointsByIndex(startIndex, endIndex)
+      const quadPoints = await this.getQuadPointsByIndex(startIndex, endIndex, range)
 
       this.currentSelection = {
         quadPoints,
@@ -394,59 +394,31 @@ export default defineComponent({
     },
 
     // 坐标获取优化方法
-    async getQuadPointsByIndex(startIdx, endIdx) {
-      const viewport = this.page.getViewport({
-        scale: this.scale,
-        rotation: 0  // 支持页面旋转
-      })
+    async getQuadPointsByIndex(startIdx, endIdx, range) {
+
       const textContent = await this.page.getTextContent()
 
-      // 合并连续文本项
-      const mergedItems = []
-      let currentItem = null
-
-      textContent.items.slice(startIdx, endIdx).forEach(item => {
-        if (!currentItem) {
-          currentItem = { ...item }
-        } else if (this.isContinuation(currentItem, item)) {
-          currentItem.width += item.width
-          currentItem.height = Math.max(currentItem.height, item.height)
-        } else {
-          mergedItems.push(currentItem)
-          currentItem = { ...item }
+      const items = textContent.items.slice(startIdx, endIdx + 1 )
+      return items.map((item, index) => {
+        let width = item.width
+        let x = item.transform[4]
+        if(index === 0 ) {
+          width = item.width / item.str.length * (item.str.length - range.startOffset)
+          x = x + (range.startOffset ? item.width / item.str.length * range.startOffset : 0)
+        } else if (index === items.length - 1) {
+          width = item.width / item.str.length * range.endOffset
         }
-      })
-      if (currentItem) mergedItems.push(currentItem)
-
-      // 坐标转换（PDF坐标系 → 页面坐标系）
-      return mergedItems.map(item => {
-        const [x1, y1] = viewport.convertToViewportPoint(
-            item.transform[4],
-            item.transform[5]
-        )
-
-        const [x2, y2] = viewport.convertToViewportPoint(
-            item.transform[4] + item.width,
-            item.transform[5] - item.height
-        )
-
-        // PDF-lib坐标系兼容
+        if (startIdx === endIdx) {
+          width = item.width / item.str.length * (range.endOffset - range.startOffset)
+        }
         return [
-          x1 / viewport.scale,                // 去除缩放影响
-          (viewport.height - y2) / viewport.scale,  // Y轴翻转
-          x2 / viewport.scale,
-          (viewport.height - y1) / viewport.scale   // Y轴翻转
+          x,          // x1
+          item.transform[5],          // y1
+          width, // x2
+          item.height, // y2
         ]
       })
-    },
 
-    // 判断是否为连续文本项
-    isContinuation(prevItem, currItem) {
-      const verticalThreshold = 5 // 允许纵向偏差（像素）
-      return (
-          Math.abs(prevItem.transform[5] - currItem.transform[5]) < verticalThreshold &&
-          prevItem.transform[4] + prevItem.width >= currItem.transform[4] - 1
-      )
     },
 
     // 查找PDF文本节点
@@ -497,20 +469,12 @@ export default defineComponent({
 
       const { quadPoints, text } = this.currentSelection
 
-      quadPoints.forEach(([x1, y1, x2, y2]) => {
-        // 在绘制前添加调试
-        console.log('原始坐标:', [x1, y1, x2, y2])
-        console.log('绘制参数:', {
-          x: x1,
-          y: y2,
-          width: x2 - x1,
-          height: y1 - y2
-        })
+      quadPoints.forEach(([x1, y1, width, height]) => {
         page.drawRectangle({
           x: x1,               // 直接使用原始X坐标
-          y: y2,               // 使用原始Y2坐标（正确对应PDF左下原点）
-          width: x2 - x1,       // 直接计算宽度
-          height: y1 - y2,     // 高度为Y1-Y2差值
+          y: y1,               // 使用原始Y2坐标（正确对应PDF左下原点）
+          width: width,       // 直接计算宽度
+          height: height,     // 高度为Y1-Y2差值
           color: rgb(1, 0, 0),
           opacity: 0.3,
           borderWidth: 0
