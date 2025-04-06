@@ -2,7 +2,8 @@
   <div class="pdf-wrapper">
     <h1>Hello PDF</h1>
     <input type="file" @change="onFileChange"/><br>
-    <button @click="handleClick">一个按钮</button>
+    <button @click="handleClick">全部高亮-未使用基线值</button>
+    <button @click="downloadModifyPdf">下载文档</button>
     <h2 style="text-align: center">PDF预览</h2>
     <div ref="pdfContainer" class="page-container"  @mouseup="checkSelection">
       <!--      pdf渲染-->
@@ -49,6 +50,18 @@ export default defineComponent({
     await this.loadPDF('/files/DBDADFA307608821A47DD67DD0B_69EFD272_1BEDC.pdf')
   },
   methods: {
+    downloadModifyPdf() {
+      // 下载modifiedPdf
+      if (!this.modifiedPdf) {
+        console.error('未加载任何文档')
+      }else {
+        // 下载blob对象
+        const link = document.createElement('a')
+        link.href = this.modifiedPdf
+        link.download = 'modified_pdf.pdf'
+        link.click()
+      }
+    },
     async handleClick() {
       const pdfContainer = this.$refs.pdfContainer
       const page = this.page
@@ -136,8 +149,8 @@ export default defineComponent({
           url: file,
           disableAutoFetch: true, // 优化大文件加载
           // enableTextSelection: true // 启用增强文本选择
-          // cMapUrl: '/cmaps/',
-          // cMapPacked: true,
+          cMapUrl: '/cmaps/',
+          cMapPacked: true,
           // TODO: cMapUrl 什么作用
         })
 
@@ -201,9 +214,9 @@ export default defineComponent({
         console.error('加载PDF文件失败:', e)
       } finally {
         // 释放 URL
-        if (file) {
-          URL.revokeObjectURL(file)
-        }
+        // if (file) {
+        //   URL.revokeObjectURL(file)
+        // }
       }
     },
 
@@ -397,10 +410,19 @@ export default defineComponent({
     async getQuadPointsByIndex(startIdx, endIdx, range) {
 
       const textContent = await this.page.getTextContent()
+      console.log('textContent: ', textContent)
+
+      const styles = textContent.styles
+      console.log('styles: ', styles)
 
       const items = textContent.items.slice(startIdx, endIdx + 1 )
       return items.map((item, index) => {
         let width = item.width
+        console.log('--------------')
+        console.log('height: ', item.height)
+        console.log('ascent', styles[item.fontName].ascent)
+        console.log('descent', styles[item.fontName].descent)
+        console.log('--------------')
         let x = item.transform[4]
         if(index === 0 ) {
           width = item.width / item.str.length * (item.str.length - range.startOffset)
@@ -411,9 +433,15 @@ export default defineComponent({
         if (startIdx === endIdx) {
           width = item.width / item.str.length * (range.endOffset - range.startOffset)
         }
-        return [
+        console.log('坐标信息： ', [
           x,          // x1
           item.transform[5],          // y1
+          width, // x2
+          item.height, // y2
+        ])
+        return [
+          x,          // x1
+          item.transform[5] + styles[item.fontName].descent * item.height ,          // y1
           width, // x2
           item.height, // y2
         ]
